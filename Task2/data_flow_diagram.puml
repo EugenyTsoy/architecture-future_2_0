@@ -1,0 +1,39 @@
+@startuml data_flow_diagramm
+
+actor "Клиент" as Client
+actor "Сотрудник колл-центра" as CallCenter
+
+rectangle "Витрина Интернет-банка" as Web
+rectangle "Мобильное приложение" as Mobile
+rectangle "Сервис обработки депозитных заявок (FastAPI)" as DepositService
+database "Core Banking (АС Депозиты)" as CoreBank
+database "DWH" as DWH
+rectangle "Keycloak (IAM)" as Keycloak
+queue "Kafka" as Kafka
+rectangle "CRM (Звонки, поддержка)" as CRM
+database "Файловый шлюз ставок\n(Excel/CSV)" as RatesGateway
+
+' Потоки клиентов
+Client --> Web : Подача заявки на депозит
+Client --> Mobile : Подача заявки на депозит
+
+' Авторизация
+Web --> Keycloak : Аутентификация
+Mobile --> Keycloak : Аутентификация
+
+' Сервисы и интеграции
+Web --> DepositService : Отправка заявки
+Mobile --> DepositService : Отправка заявки
+DepositService --> CoreBank : Открытие депозита (через API/интеграцию)
+DepositService --> Kafka : События "Депозит открыт"
+DepositService --> DWH : Отчётность
+
+' Колл-центр и CRM
+CallCenter --> CRM : Создание/обработка обращения
+CRM --> DepositService : Запрос статуса заявки
+CRM --> Kafka : События по взаимодействию
+
+' Ставки
+RatesGateway --> DepositService : Загрузка ставок
+
+@enduml

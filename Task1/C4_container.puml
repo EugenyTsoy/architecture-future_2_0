@@ -1,0 +1,72 @@
+@startuml standart
+title Диаграмма контейнеров системы банка "Стандарт" через 1 год
+
+skinparam rectangle {
+  BackgroundColor<<external>> #fdf2e9
+  BackgroundColor<<internal>> #e9f7ef
+  BackgroundColor<<user>> #ebf5fb
+  BorderColor #555
+  FontColor #111
+}
+
+rectangle "Клиент" <<user>> {
+}
+
+rectangle "Веб-сайт банка" <<internal>> {
+}
+
+rectangle "Интернет-банк (Frontend)" <<internal>> {
+}
+
+rectangle "API Gateway (Nginx)" <<internal>> {
+}
+
+rectangle "Backend (FastAPI)" <<internal>> {
+}
+
+rectangle "PostgreSQL БД" <<internal>> {
+}
+
+rectangle "Keycloak (IAM)" <<internal>> {
+}
+
+rectangle "Kafka (Event Streaming)" <<internal>> {
+}
+
+rectangle "ESB (Apache Camel)" <<internal>> {
+}
+
+rectangle "Система депозитов (Legacy Core)" <<external>> {
+}
+
+rectangle "Колл-центр внешний" <<external>> {
+}
+
+rectangle "Колл-центр внутренний" <<internal>> {
+}
+
+' Взаимодействия пользователей
+"Клиент" --> "Веб-сайт банка" : Просмотр информации\nи заявка на депозит
+"Клиент" --> "Интернет-банк (Frontend)" : Вход в систему\nи управление депозитами
+
+' API Gateway как точка входа
+"Веб-сайт банка" --> "API Gateway (Nginx)" : Отправка заявок
+"Интернет-банк (Frontend)" --> "API Gateway (Nginx)" : API-запросы
+"API Gateway (Nginx)" --> "Backend (FastAPI)" : Проксирование запросов
+
+' Backend и сервисы
+"Backend (FastAPI)" --> "PostgreSQL БД" : Хранение данных
+"Backend (FastAPI)" --> "Keycloak (IAM)" : Проверка токенов
+"Backend (FastAPI)" --> "Kafka (Event Streaming)" : Публикация событий
+
+' Интеграции через ESB
+"Kafka (Event Streaming)" --> "ESB (Apache Camel)" : Потоки событий
+"ESB (Apache Camel)" --> "Система депозитов (Legacy Core)" : Интеграция, трансформации
+"Система депозитов (Legacy Core)" --> "ESB (Apache Camel)" : Ответные статусы
+"ESB (Apache Camel)" --> "Kafka (Event Streaming)" : Обратные события
+
+' Колл-центры
+"Backend (FastAPI)" --> "Колл-центр внутренний" : Доступ к заявкам
+"Backend (FastAPI)" --> "Колл-центр внешний" : Доступ к заявкам
+
+@enduml
