@@ -1,0 +1,55 @@
+@startuml
+!include <C4/C4_Container>
+
+LAYOUT_TOP_DOWN()
+
+Person(business_user, "Бизнес-пользователь", "Сотрудник компании, которому нужен доступ к аналитическим данным")
+Person(analyst, "Аналитик данных", "Подгружает данные из хранилища, строит отчеты")
+
+System_Boundary(dip, "Databricks Data Intelligence Platform") {
+    Container(ui, "Портал самообслуживания", "Web application", "Предоставляет интерфейс для работы с аналитическими данными и создания отчетов")
+    Container(lakeflow, "Lakeflow Connect", "Batch", "Коннектор для сбора данных из бизнес-сервисов")
+    Container(airflow, "Apache Airflow", "Orchestrating data pipelines", "Управление и планирование конвейеров данных")
+    Container(deltalake, "Delta Lake", "Data Management", "Оптимизированный уровень хранения")
+    Container(ai, "MLflow", "Python", "Анализ данных и прогнозирование")
+    Container(flk_service, "Validation / FLK Service", "Service", "Проверка формата и логики данных (FHIR/HL7/JSON), миграция правил")
+    Container(streaming, "Streaming Platform", "Kafka / Pulsar", "Реальное время: потоковое обновление данных и fast-path критических событий.  (Источники streaming появятся в будущем при подключении финтех-событий и медицинского оборудования. На текущем этапе стриминг-система вводится как архитектурный задел, а не обязательный канал).")
+}
+
+System_Boundary(legacy, "Legacy Systems") {
+    Container(legacy_dwh, "Legacy DWH", "Microsoft SQL Server", "Историческое хранилище данных")
+    Container(bi_system, "BI-система", "Power BI", "Создание и поддержка легаси-отчетов и дашбордов")
+    Container(legacy_esb, "Legacy ESB / Apache Camel", "Integration Layer", "Синхронная маршрутизация, трансформации, ФЛК, интеграционные правила")
+}
+ 
+
+System_Boundary(business, "Бизнес-сервисы") {
+    Container(fintech_system, "Fintech-сервис", "Golang, Java", "Управление банковскими услугами")
+    Container(clinic_system, "Clinic-сервис", "Golang, Java", "Управление медицинскими услугами")
+}
+
+Rel(business_user, ui, "Использует")
+Rel(ui, deltalake, "Авторизует и получает данные")
+Rel(lakeflow, fintech_system, "Извлекает сырые данные")
+Rel(lakeflow, clinic_system, "Извлекает сырые данные")
+Rel(lakeflow, legacy_dwh, "Извлекает исторические данные")
+Rel(airflow, lakeflow, "Запускает конвейеры данных")
+Rel(airflow, deltalake, "Передает обработанные данные")
+
+Rel(lakeflow, flk_service, "Передаёт данные для валидации и ФЛК")
+Rel(flk_service, deltalake, "Записывает проверенные данные")
+Rel(streaming, deltalake, "Обновление витрины данных в реальном времени")
+Rel(streaming, ai, "Поддержка потокового обучения ИИ")
+
+Rel(fintech_system, legacy_esb, "Отправляет данные / вызывает процедуры")
+Rel(clinic_system, legacy_esb, "Отправляет данные / вызывает процедуры")
+Rel(legacy_esb, legacy_dwh, "Трансформирует и загружает")
+Rel(legacy_esb, lakeflow, "Промежуточная передача данных (в процессе миграции)")
+
+Rel(analyst, bi_system, "Использует")
+Rel(analyst, ui, "Использует")
+Rel(bi_system, dip, "Использует")
+Rel(ai, deltalake, "Использует")
+ 
+
+@enduml 
