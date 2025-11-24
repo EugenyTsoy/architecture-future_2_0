@@ -12,11 +12,14 @@ System_Boundary(dip, "Databricks Data Intelligence Platform") {
     Container(airflow, "Apache Airflow", "Orchestrating data pipelines", "Управление и планирование конвейеров данных")
     Container(deltalake, "Delta Lake", "Data Management", "Оптимизированный уровень хранения")
     Container(ai, "MLflow", "Python", "Анализ данных и прогнозирование")
+    Container(flk_service, "Validation / FLK Service", "Service", "Проверка формата и логики данных (FHIR/HL7/JSON), миграция правил")
+    Container(streaming, "Streaming Platform", "Kafka / Pulsar", "Реальное время: потоковое обновление данных и fast-path критических событий.  (Источники streaming появятся в будущем при подключении финтех-событий и медицинского оборудования. На текущем этапе стриминг-система вводится как архитектурный задел, а не обязательный канал).")
 }
 
 System_Boundary(legacy, "Legacy Systems") {
     Container(legacy_dwh, "Legacy DWH", "Microsoft SQL Server", "Историческое хранилище данных")
     Container(bi_system, "BI-система", "Power BI", "Создание и поддержка легаси-отчетов и дашбордов")
+    Container(legacy_esb, "Legacy ESB / Apache Camel", "Integration Layer", "Синхронная маршрутизация, трансформации, ФЛК, интеграционные правила")
 }
  
 
@@ -32,6 +35,16 @@ Rel(lakeflow, clinic_system, "Извлекает сырые данные")
 Rel(lakeflow, legacy_dwh, "Извлекает исторические данные")
 Rel(airflow, lakeflow, "Запускает конвейеры данных")
 Rel(airflow, deltalake, "Передает обработанные данные")
+
+Rel(lakeflow, flk_service, "Передаёт данные для валидации и ФЛК")
+Rel(flk_service, deltalake, "Записывает проверенные данные")
+Rel(streaming, deltalake, "Обновление витрины данных в реальном времени")
+Rel(streaming, ai, "Поддержка потокового обучения ИИ")
+
+Rel(fintech_system, legacy_esb, "Отправляет данные / вызывает процедуры")
+Rel(clinic_system, legacy_esb, "Отправляет данные / вызывает процедуры")
+Rel(legacy_esb, legacy_dwh, "Трансформирует и загружает")
+Rel(legacy_esb, lakeflow, "Промежуточная передача данных (в процессе миграции)")
 
 Rel(analyst, bi_system, "Использует")
 Rel(analyst, ui, "Использует")
